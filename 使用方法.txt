@@ -1,0 +1,51 @@
+cd wuwa-echo-score
+npm run dev
+で起動
+
+追加方法
+
+画像保存場所
+wuwa-echo-score/public/images/
+
+
+{
+    id: "jinxi",
+    name: "今汐",
+    image: "/images/jinxi.jpg",
+    primaryStat: "atk",
+    scaling: {
+      critical: 2,
+      criticalDamage: 1,
+      attackPercent: 1,
+      attackFlat: 1
+    },
+    fixedBonus: {
+      type: "resonanceSkill",
+      multiplier: 0.8
+    }
+  },
+
+
+共鳴スキル＝resonanceSkill
+重撃＝heavyAttack
+通常攻撃＝normalAttack
+
+攻撃参照: primaryStat: "atk"
+HP参照: primaryStat: "hp"
+防御参照: primaryStat: "def"
+
+
+日本語ラベル	プロパティ名（コード内の名称）
+クリティカル率	critical
+クリティカルダメージ	criticalDamage
+攻撃％	attackPercent
+防御％	defPercent
+HP％	hpPercent
+共鳴効率	energyRegen
+攻撃実数	attackFlat
+HP実数	hpFlat
+防御実数	defFlat
+通常攻撃	normalAttack
+重撃	heavyAttack
+共鳴スキル	resonanceSkill
+共鳴解放	resonanceLiberation
