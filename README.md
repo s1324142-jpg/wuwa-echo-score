@@ -1,36 +1,161 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 鳴潮 音骸スコア計算機
 
-## Getting Started
+『鳴潮（Wuthering Waves）』の音骸5個を、キャラクターごとの係数で評価するWebツールです。ステータスを入力すると、各音骸のスコア・合計スコア・評価ランクを表示します。
 
-First, run the development server:
+## 主な機能
+
+- キャラクターごとの参照ステータス・ダメージアップ係数に応じたスコア計算
+- 音骸5個分のステータスの手動入力
+- AIが出力した所定形式のテキストからの一括入力
+- 個別・合計スコアとSS〜Cのランク表示
+- 評価結果のPNG画像保存
+
+## ローカルで起動する
+
+Node.js 20.9.0以上とnpmを用意して、以下を実行します。
 
 ```bash
+git clone https://github.com/s1324142-jpg/wuwa-echo-score.git
+cd wuwa-echo-score
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで http://localhost:3000 を開きます。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| コマンド | 内容 |
+| --- | --- |
+| `npm run dev` | 開発サーバーを起動 |
+| `npm run build` | 本番用にビルド |
+| `npm start` | ビルド済みのアプリを起動 |
+| `npm run lint` | ESLintでコードを確認 |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 使い方
 
-## Learn More
+1. 対象キャラクターを選びます。
+2. 音骸ごとのステータスを入力します。割合は `8.4%` なら `8.4`、実数はそのまま入力します。
+3. 自動更新されるスコアとランクを確認します。
+4. 「結果を画像として保存」を押すと、評価結果をPNGで保存できます。
 
-To learn more about Next.js, take a look at the following resources:
+入力するのは各音骸の評価対象となる数値です。キャラクター全体のステータス合計を各欄に入力しないでください。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### AI出力テキストから一括入力
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+画面の案内に沿って外部AIで画像をテキスト化し、入力欄へ貼り付けて「解析して反映」を押します。このアプリ自体には画像解析処理はありません。取り込み後は数値を確認し、必要に応じて手動で修正してください。
 
-## Deploy on Vercel
+入力例（心の音骸1個分）：
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```text
+キャラ名: 心
+【音骸1】
+クリティカル率: 8.4
+クリティカルダメージ: 16.8
+攻撃％: 9
+攻撃実数: 40
+共鳴スキル: 9
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 音骸の区切りには `【音骸1】` 〜 `【音骸5】` を使います。
+- 項目名と区切りは例の表記に合わせてください。コロンは半角 `:`、`攻撃％`・`防御％`・`HP％` の％は全角です。
+- 入力可能な項目は、クリティカル率、クリティカルダメージ、攻撃％、防御％、HP％、共鳴効率、攻撃実数、HP実数、防御実数、通常攻撃、重撃、共鳴スキル、共鳴解放です。
+- 省略した項目と不足分の音骸は0になります。一括入力は現在の入力を置き換えます。
+- キャラ名は選択肢と完全一致させてください。一致しない場合は先頭のキャラ（カカロ）が選ばれます。
+
+## スコアの計算方式
+
+音骸1個のスコアは、ステータスに設定済みの係数を掛けて合計する方式です。実際のダメージ量や、武器・凸・編成を含めた最適化を計算するものではありません。
+
+```text
+スコア = クリティカル率 × 2
+       + クリティカルダメージ
+       + 参照ステータスの加点
+       + キャラ別のダメージアップ加点
+```
+
+### 参照ステータス
+
+通常の攻撃参照キャラは `攻撃％ × 係数 + 攻撃実数 ÷ 10 × 係数` で加点します。現在の設定では、以下の例外があります。
+
+| 対象 | 参照ステータスの加点 |
+| --- | --- |
+| 通常の攻撃参照キャラ | 攻撃％ + 攻撃実数 ÷ 10 |
+| エイメス・緋雪 | 攻撃％のみ |
+| 桃折（現在の登録名） | 防御％ + 防御実数 ÷ 10 |
+| カルテジア | HP％のみ |
+| ブラント | 共鳴効率のみ |
+
+選択キャラの参照対象でないステータスは加点されません。たとえば、通常の攻撃参照キャラではHP・防御・共鳴効率はスコアに入りません。
+
+### 心の計算例
+
+心は共鳴スキルダメージアップに `0.8` の係数を使います。
+
+```text
+心のスコア = クリ率 × 2 + クリダメ + 攻撃％ + 攻撃実数 ÷ 10
+           + 共鳴スキルダメージアップ × 0.8
+
+例：クリ率8.4%、クリダメ16.8%、攻撃9%、攻撃実数40、スキルアップ9%
+8.4 × 2 + 16.8 + 9 + 40 ÷ 10 + 9 × 0.8 = 53.8点
+```
+
+キャラ別の係数は [lib/characters.ts](lib/characters.ts)、計算処理は [lib/score.ts](lib/score.ts) に定義しています。設定されていない種類のダメージアップは加点されません。
+
+### 合計と評価ランク
+
+各音骸のスコアを小数第1位に四捨五入し、5個分を合計します。
+
+| ランク | 合計スコア |
+| --- | --- |
+| SS | 200以上 |
+| S | 180以上、200未満 |
+| A | 150以上、180未満 |
+| B | 120以上、150未満 |
+| C | 120未満 |
+
+個別ランクは現在 `音骸1個のスコア × 4` を上記の基準に当てはめています。5個分の合計ランクとは判定方法が異なります。
+
+## キャラクターの追加・調整
+
+`lib/characters.ts` の `CHARACTERS` に設定を追加します。
+
+```ts
+{
+  id: "example",
+  name: "追加キャラ",
+  image: "/images/example.jpg",
+  primaryStat: "atk",
+  scaling: {
+    critical: 2,
+    criticalDamage: 1,
+    attackPercent: 1,
+    attackFlat: 1
+  },
+  fixedBonuses: [
+    { type: "resonanceSkill", multiplier: 0.8 }
+  ]
+}
+```
+
+- `primaryStat`：`atk`（攻撃）、`hp`（HP）、`def`（防御）、`energyRegen`（共鳴効率）
+- 実数の係数：`attackFlat`・`hpFlat`・`defFlat`。計算時に実数を10で割ってから係数を掛けます。`0` を指定すると加点されません。
+- `fixedBonuses`：通常攻撃 `normalAttack`、重撃 `heavyAttack`、共鳴スキル `resonanceSkill`、共鳴解放 `resonanceLiberation` の係数を指定します。複数指定も可能です。
+- 画像：`public/images/` に保存し、`image` に `/images/ファイル名` を指定します。
+
+## 構成・使用技術
+
+Next.js 16 / React 19 / TypeScript / Tailwind CSS 4 / html2canvas
+
+| ファイル | 役割 |
+| --- | --- |
+| `app/page.tsx` | 入力画面・結果表示・画像保存 |
+| `lib/characters.ts` | キャラ別の係数と画像設定 |
+| `lib/score.ts` | スコア計算・ランク判定 |
+| `lib/parser.ts` | 一括入力テキストの解析 |
+| `lib/types.ts` | 音骸ステータスの型定義 |
+| `public/images/` | キャラクター画像 |
+
+## 同梱アセットについて
+
+現在同梱しているキャラクター画像は一部のみです。画像が表示されないキャラは、設定したパスに対応する画像を追加してください。
+
+「使い方動画」で再生する動画は未同梱です。利用する場合は `public/tutorial.mp4` を配置してください。
